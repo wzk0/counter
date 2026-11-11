@@ -1,0 +1,25 @@
+# Gradle / Kotlin
+.gradle/
+build/
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+*.hprof
+
+# Local configuration
+local.properties
+.idea/
+*.iml
+.DS_Store
+
+# Signing material — never commit these
+keystore.properties
+*.jks
+*.keystore
+*.p12
+signing/
+
+# Build output
+*.apk
+*.aab

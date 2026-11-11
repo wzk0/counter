@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- A plain plus: counting, adding one at a time. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,47h32a7,7 0 0 1 0,14h-32a7,7 0 0 1 0,-14z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M47,38h14a7,7 0 0 1 7,7v18a7,7 0 0 1 -7,7h-14a7,7 0 0 1 -7,-7v-18a7,7 0 0 1 7,-7z" />
+</vector>
