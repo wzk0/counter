@@ -75,6 +75,13 @@ fun CounterApp(viewModel: CounterViewModel) {
     // The bracketed count is only meaningful once there is something to count.
     val pinnedCountText = if (pinned.isEmpty()) "" else " (${pinned.size}个)"
     val totalCountText = if (counters.isEmpty()) "" else " (${counters.size}个)"
+    // Nothing pinned means the pinned tally has nothing to add - drop it and its separator.
+    val subtitle = buildString {
+        if (pinned.isNotEmpty()) {
+            append("置顶计数和: ${viewModel.pinnedSum()}$pinnedCountText│")
+        }
+        append("总计数和: ${viewModel.totalSum()}$totalCountText")
+    }
     var showAddSheet by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<CounterItem?>(null) }
     var confirmDeleteAll by remember { mutableStateOf(false) }
@@ -90,8 +97,7 @@ fun CounterApp(viewModel: CounterViewModel) {
                             style = MaterialTheme.typography.titleLarge,
                         )
                         Text(
-                            text = "置顶计数和: ${viewModel.pinnedSum()}$pinnedCountText" +
-                                "│总计数和: ${viewModel.totalSum()}$totalCountText",
+                            text = subtitle,
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                             letterSpacing = 0.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -23,3 +23,5 @@ signing/
 # Build output
 *.apk
 *.aab
+# Local helper that prints release secrets — never commit
+/secrets.fish

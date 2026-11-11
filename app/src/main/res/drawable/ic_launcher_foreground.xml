@@ -4,11 +4,22 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- A plain plus: counting, adding one at a time. -->
+    <!-- "+1": rounded strokes, centred inside the 66% safe zone on a transparent background. -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M38,47h32a7,7 0 0 1 0,14h-32a7,7 0 0 1 0,-14z" />
+        android:pathData="M31.75,49.25h14.5a4.75,4.75 0 0 1 0,9.5h-14.5a4.75,4.75 0 0 1 0,-9.5z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M47,38h14a7,7 0 0 1 7,7v18a7,7 0 0 1 -7,7h-14a7,7 0 0 1 -7,-7v-18a7,7 0 0 1 7,-7z" />
+        android:pathData="M39,41a4.75,4.75 0 0 1 4.75,4.75v16.5a4.75,4.75 0 0 1 -9.5,0v-16.5a4.75,4.75 0 0 1 4.75,-4.75z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M75,36.5a4.75,4.75 0 0 1 4.75,4.75v26a4.75,4.75 0 0 1 -9.5,0v-26a4.75,4.75 0 0 1 4.75,-4.75z" />
+    <group
+        android:pivotX="68.5"
+        android:pivotY="41.25"
+        android:rotation="-126.2">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M68.5,33.2a4.75,4.75 0 0 1 4.75,4.75v6.6a4.75,4.75 0 0 1 -9.5,0v-6.6a4.75,4.75 0 0 1 4.75,-4.75z" />
+    </group>
 </vector>
