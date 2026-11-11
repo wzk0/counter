@@ -67,6 +67,12 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "Counter-${VERSION}.apk"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
+      - name: Upload R8 mapping
+        uses: actions/upload-artifact@v4
+        with:
+          name: mapping-${{ env.VERSION }}
+          path: app/build/outputs/mapping/release/mapping.txt
+
       - name: Verify signature
         run: |
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)

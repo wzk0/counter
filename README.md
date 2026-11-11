@@ -26,8 +26,12 @@
 
 产物：
 
-- `app/build/outputs/apk/debug/app-debug.apk`
-- `app/build/outputs/apk/release/app-release.apk`
+- `app/build/outputs/apk/debug/app-debug.apk`（约 13 MB，未压缩）
+- `app/build/outputs/apk/release/app-release.apk`（约 1.3 MB：release 开启 R8 代码压缩 + 资源压缩）
+
+release 包是 **通用 APK**，一份装遍所有 ABI：代码是纯 Kotlin/Java，唯一的原生库是 `libandroidx.graphics.path.so`（四个 ABI 合计仅 37 KB）。按 ABI 拆分每个包只小约 25 KB，不值得；真要按 ABI 分发请用 AAB。
+
+R8 会产出混淆映射，CI 把它作为 artifact 上传（`mapping-<version>`），线上崩溃栈可据此还原。
 
 ## 签名
 
