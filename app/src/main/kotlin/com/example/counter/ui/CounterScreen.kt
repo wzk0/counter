@@ -2,9 +2,15 @@ package com.example.counter.ui
 
 import android.view.WindowManager
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -26,8 +32,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -455,6 +463,7 @@ private fun EmptyState(onCreate: () -> Unit, modifier: Modifier = Modifier) {
 
 @OptIn(
     ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3ExpressiveApi::class,
     ExperimentalLayoutApi::class,
     ExperimentalFoundationApi::class,
 )
@@ -468,7 +477,8 @@ private fun AddCounterSheet(
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     var name by remember { mutableStateOf("") }
-    var editingHistory by remember { mutableStateOf(false) }
+    // Only the entry that was long pressed reveals its x, like a single chip going into edit mode.
+    var editingEntry by remember { mutableStateOf<String?>(null) }
 
     // Slide the sheet down first, then drop it from the composition - removing it straight away
     // is what made closing look like it had no animation.
@@ -479,8 +489,10 @@ private fun AddCounterSheet(
         }
     }
 
-    LaunchedEffect(history.isEmpty()) {
-        if (history.isEmpty()) editingHistory = false
+    LaunchedEffect(history) {
+        if (editingEntry != null && history.none { it == editingEntry }) {
+            editingEntry = null
+        }
     }
 
     ModalBottomSheet(
@@ -496,8 +508,9 @@ private fun AddCounterSheet(
                 .verticalScroll(rememberScrollState())
                 // A tap on the sheet body (but not on a control) leaves history edit mode.
                 .pointerInput(Unit) {
-                    detectTapGestures { editingHistory = false }
+                    detectTapGestures { editingEntry = null }
                 }
+                .animateContentSize()
                 .imePadding()
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 28.dp),
@@ -512,26 +525,40 @@ private fun AddCounterSheet(
                 shape = MaterialTheme.shapes.large,
                 modifier = Modifier.fillMaxWidth(),
             )
-            if (history.isNotEmpty()) {
-                Spacer(Modifier.height(18.dp))
-                Text(
-                    text = "历史记录",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(10.dp))
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    history.forEach { entry ->
-                        HistoryChip(
-                            label = entry,
-                            editing = editingHistory,
-                            onPick = { name = entry },
-                            onLongPress = { editingHistory = true },
-                            onDelete = { onForgetHistory(entry) },
-                        )
+            AnimatedVisibility(
+                visible = history.isNotEmpty(),
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                Column {
+                    Spacer(Modifier.height(18.dp))
+                    Text(
+                        text = "历史记录",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        contentPadding = PaddingValues(horizontal = 2.dp),
+                    ) {
+                        items(items = history, key = { it }) { entry ->
+                            HistoryChip(
+                                label = entry,
+                                editing = entry == editingEntry,
+                                onPick = { name = entry },
+                                onLongPress = { editingEntry = entry },
+                                onDelete = {
+                                    editingEntry = null
+                                    onForgetHistory(entry)
+                                },
+                                modifier = Modifier.animateItem(
+                                    fadeInSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+                                    fadeOutSpec = tween(durationMillis = 120),
+                                    placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                                ),
+                            )
+                        }
                     }
                 }
             }
@@ -577,7 +604,7 @@ private fun PinSheetWindowToBottom() {
     }
 }
 
-/** History suggestion: tap to reuse, long press to switch the whole row into delete mode. */
+/** History suggestion: tap to reuse, long press reveals its own leading x for deletion. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HistoryChip(
@@ -586,10 +613,11 @@ private fun HistoryChip(
     onPick: () -> Unit,
     onLongPress: () -> Unit,
     onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
-    Box(
-        modifier = Modifier
+    Row(
+        modifier = modifier
             .clip(MaterialTheme.shapes.small)
             .background(if (editing) scheme.errorContainer else scheme.surfaceContainerHighest)
             .combinedClickable(
@@ -597,22 +625,24 @@ private fun HistoryChip(
                 onLongClick = onLongPress,
             )
             .padding(horizontal = 12.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        AnimatedVisibility(
+            visible = editing,
+            enter = expandHorizontally(expandFrom = Alignment.Start) + fadeIn(),
+            exit = shrinkHorizontally(shrinkTowards = Alignment.Start) + fadeOut(),
         ) {
-            if (editing) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 CloseGlyph(color = scheme.onErrorContainer, size = 14.dp)
+                Spacer(Modifier.width(6.dp))
             }
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                color = if (editing) scheme.onErrorContainer else scheme.onSurface,
-                maxLines = 1,
-            )
         }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = if (editing) scheme.onErrorContainer else scheme.onSurface,
+            maxLines = 1,
+        )
     }
 }
 
