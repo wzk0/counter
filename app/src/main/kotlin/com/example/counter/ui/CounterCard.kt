@@ -126,9 +126,12 @@ private fun ComfortableCounterCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
-                        .weight(1f)
+                        // fill = false so the ink well hugs the label instead of the whole row
+                        .weight(1f, fill = false)
+                        // clipping the clickable keeps the ink well inside a rounded shape
+                        .clip(MaterialTheme.shapes.small)
                         .clickable(onClick = onRename)
-                        .padding(vertical = 12.dp, horizontal = 4.dp),
+                        .padding(vertical = 12.dp, horizontal = 8.dp),
                 )
                 Box {
                     Box(
@@ -253,9 +256,10 @@ private fun CompactCounterCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
-                    .weight(1f)
+                    .weight(1f, fill = false)
+                    .clip(MaterialTheme.shapes.small)
                     .clickable(onClick = onRename)
-                    .padding(vertical = 12.dp),
+                    .padding(vertical = 12.dp, horizontal = 8.dp),
             )
             Text(
                 text = item.value.toString(),

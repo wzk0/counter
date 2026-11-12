@@ -527,8 +527,10 @@ private fun AddCounterSheet(
             )
             AnimatedVisibility(
                 visible = history.isNotEmpty(),
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut(),
+                enter = expandVertically(animationSpec = tween(durationMillis = 200)) +
+                    fadeIn(animationSpec = tween(durationMillis = 160)),
+                exit = shrinkVertically(animationSpec = tween(durationMillis = 150)) +
+                    fadeOut(animationSpec = tween(durationMillis = 110)),
             ) {
                 Column {
                     Spacer(Modifier.height(18.dp))
