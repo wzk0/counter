@@ -167,7 +167,12 @@ fun CounterApp(viewModel: CounterViewModel) {
                 onClick = { showAddSheet = true },
                 shape = RoundedCornerShape(16.dp),
             ) {
-                StepGlyph(plus = true, color = LocalContentColor.current, size = 24.dp)
+                StepGlyph(
+                    plus = true,
+                    color = LocalContentColor.current,
+                    size = 24.dp,
+                    strokeRatio = 0.085f,
+                )
             }
         },
     ) { innerPadding ->
@@ -508,24 +513,13 @@ private fun AddCounterSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
             if (history.isNotEmpty()) {
-                Spacer(Modifier.height(14.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "历史记录",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = if (editingHistory) "点叉删除" else "长按可删除",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                    )
-                }
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(18.dp))
+                Text(
+                    text = "历史记录",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(10.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -605,16 +599,17 @@ private fun HistoryChip(
             .padding(horizontal = 12.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
-        if (editing) {
-            CloseGlyph(
-                color = scheme.onErrorContainer,
-                size = 14.dp,
-            )
-        } else {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            if (editing) {
+                CloseGlyph(color = scheme.onErrorContainer, size = 14.dp)
+            }
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
-                color = scheme.onSurface,
+                color = if (editing) scheme.onErrorContainer else scheme.onSurface,
                 maxLines = 1,
             )
         }

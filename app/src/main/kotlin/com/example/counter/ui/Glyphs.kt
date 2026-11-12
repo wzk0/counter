@@ -18,11 +18,14 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-/** "+" or "-" drawn with round caps so it reads like a real icon, not a text glyph. */
+/**
+ * "+" or "-" drawn with round caps so it reads like a real icon, not a text glyph.
+ * [strokeRatio] is the stroke width relative to the icon size (Material icons sit around 0.085).
+ */
 @Composable
-internal fun StepGlyph(plus: Boolean, color: Color, size: Dp = 24.dp) {
+internal fun StepGlyph(plus: Boolean, color: Color, size: Dp = 24.dp, strokeRatio: Float = 0.13f) {
     Canvas(Modifier.size(size)) {
-        val stroke = this.size.minDimension * 0.13f
+        val stroke = this.size.minDimension * strokeRatio
         val edge = this.size.minDimension * 0.2f
         val far = this.size.minDimension - edge
         val center = this.size.minDimension / 2f
