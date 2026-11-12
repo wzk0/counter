@@ -1,8 +1,17 @@
 package com.example.counter.ui
 
+import android.view.WindowManager
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,7 +44,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -46,9 +54,12 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,13 +67,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogWindowProvider
 import com.example.counter.R
 import com.example.counter.data.CounterItem
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -157,7 +171,14 @@ fun CounterApp(viewModel: CounterViewModel) {
             }
         },
     ) { innerPadding ->
-        if (counters.isEmpty()) {
+        AnimatedContent(
+            targetState = counters.isEmpty(),
+            transitionSpec = {
+                fadeIn(tween(durationMillis = 180)) togetherWith fadeOut(tween(durationMillis = 120))
+            },
+            label = "content",
+        ) { isEmpty ->
+        if (isEmpty) {
             EmptyState(
                 onCreate = { showAddSheet = true },
                 modifier = Modifier
@@ -187,16 +208,15 @@ fun CounterApp(viewModel: CounterViewModel) {
                 }
             }
         }
+        }
     }
 
     if (showAddSheet) {
         AddCounterSheet(
             history = viewModel.history,
             onDismiss = { showAddSheet = false },
-            onAdd = { label ->
-                viewModel.add(label)
-                showAddSheet = false
-            },
+            onSubmit = { label -> viewModel.add(label) },
+            onForgetHistory = { entry -> viewModel.forgetName(entry) },
         )
     }
 
@@ -252,9 +272,9 @@ private fun LazyListScope.counterItems(
             onDelete = { viewModel.remove(item.id) },
             onTogglePin = { viewModel.togglePin(item.id) },
             modifier = Modifier.animateItem(
-                fadeInSpec = null,
-                fadeOutSpec = null,
-                placementSpec = androidx.compose.material3.MaterialTheme.motionScheme.defaultSpatialSpec(),
+                fadeInSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+                fadeOutSpec = tween(durationMillis = 140),
+                placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
             ),
         )
     }
@@ -428,26 +448,51 @@ private fun EmptyState(onCreate: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalLayoutApi::class,
+    ExperimentalFoundationApi::class,
+)
 @Composable
 private fun AddCounterSheet(
     history: List<String>,
     onDismiss: () -> Unit,
-    onAdd: (String) -> Unit,
+    onSubmit: (String) -> Unit,
+    onForgetHistory: (String) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
     var name by remember { mutableStateOf("") }
+    var editingHistory by remember { mutableStateOf(false) }
+
+    // Slide the sheet down first, then drop it from the composition - removing it straight away
+    // is what made closing look like it had no animation.
+    fun close(then: () -> Unit = {}) {
+        scope.launch { sheetState.hide() }.invokeOnCompletion {
+            then()
+            onDismiss()
+        }
+    }
+
+    LaunchedEffect(history.isEmpty()) {
+        if (history.isEmpty()) editingHistory = false
+    }
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { close() },
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         shape = MaterialTheme.shapes.extraLarge,
     ) {
+        PinSheetWindowToBottom()
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
+                // A tap on the sheet body (but not on a control) leaves history edit mode.
+                .pointerInput(Unit) {
+                    detectTapGestures { editingHistory = false }
+                }
                 .imePadding()
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 28.dp),
@@ -464,34 +509,48 @@ private fun AddCounterSheet(
             )
             if (history.isNotEmpty()) {
                 Spacer(Modifier.height(14.dp))
-                Text(
-                    text = "历史记录",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "历史记录",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = if (editingHistory) "点叉删除" else "长按可删除",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    )
+                }
                 Spacer(Modifier.height(2.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     history.forEach { entry ->
-                        SuggestionChip(
-                            onClick = { name = entry },
-                            label = {
-                                Text(
-                                    text = entry,
-                                    style = MaterialTheme.typography.labelLarge,
-                                )
-                            },
+                        HistoryChip(
+                            label = entry,
+                            editing = editingHistory,
+                            onPick = { name = entry },
+                            onLongPress = { editingHistory = true },
+                            onDelete = { onForgetHistory(entry) },
                         )
                     }
                 }
             }
             Spacer(Modifier.height(20.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("取消") }
+                TextButton(
+                    onClick = { close() },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("取消")
+                }
                 Button(
-                    onClick = { onAdd(name) },
+                    onClick = { close { onSubmit(name) } },
                     enabled = name.isNotBlank(),
                     shape = MaterialTheme.shapes.large,
                     modifier = Modifier.weight(1f),
@@ -499,6 +558,65 @@ private fun AddCounterSheet(
                     Text("添加")
                 }
             }
+        }
+    }
+}
+
+/**
+ * Stops the sheet's own window from being resized by the keyboard, so the sheet stays anchored to
+ * the bottom of the screen and only its content (via imePadding) moves up.
+ */
+@Composable
+private fun PinSheetWindowToBottom() {
+    val view = LocalView.current
+    DisposableEffect(view) {
+        val window = (view.parent as? DialogWindowProvider)?.window
+        val previous = window?.attributes?.softInputMode
+        if (window != null) {
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
+        }
+        onDispose {
+            if (window != null && previous != null) {
+                window.setSoftInputMode(previous)
+            }
+        }
+    }
+}
+
+/** History suggestion: tap to reuse, long press to switch the whole row into delete mode. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun HistoryChip(
+    label: String,
+    editing: Boolean,
+    onPick: () -> Unit,
+    onLongPress: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Box(
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.small)
+            .background(if (editing) scheme.errorContainer else scheme.surfaceContainerHighest)
+            .combinedClickable(
+                onClick = { if (editing) onDelete() else onPick() },
+                onLongClick = onLongPress,
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (editing) {
+            CloseGlyph(
+                color = scheme.onErrorContainer,
+                size = 14.dp,
+            )
+        } else {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                color = scheme.onSurface,
+                maxLines = 1,
+            )
         }
     }
 }

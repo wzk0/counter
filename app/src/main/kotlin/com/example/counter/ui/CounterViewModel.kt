@@ -92,6 +92,13 @@ class CounterViewModel(private val store: CounterStore) : ViewModel() {
 
     fun totalSum(): Int = items.sumOf { it.value }
 
+    /** Drops one entry from the suggestion history. */
+    fun forgetName(name: String) {
+        if (history.remove(name)) {
+            store.saveHistory(history.toList())
+        }
+    }
+
     private fun rememberName(name: String) {
         history.remove(name)
         history.add(0, name)

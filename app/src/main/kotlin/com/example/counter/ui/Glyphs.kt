@@ -152,6 +152,18 @@ internal fun ResetGlyph(color: Color, size: Dp = 24.dp) {
     }
 }
 
+/** Small cross used for inline delete affordances. */
+@Composable
+internal fun CloseGlyph(color: Color, size: Dp = 16.dp) {
+    Canvas(Modifier.size(size)) {
+        val s = this.size.minDimension
+        val stroke = s * 0.14f
+        val inset = s * 0.24f
+        drawLine(color, Offset(inset, inset), Offset(s - inset, s - inset), stroke, StrokeCap.Round)
+        drawLine(color, Offset(s - inset, inset), Offset(inset, s - inset), stroke, StrokeCap.Round)
+    }
+}
+
 /** Little pin mark used to flag a pinned counter. */
 @Composable
 internal fun PinGlyph(color: Color, size: Dp = 16.dp) {
