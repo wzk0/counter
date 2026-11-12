@@ -448,7 +448,7 @@ private fun EmptyState(onCreate: () -> Unit, modifier: Modifier = Modifier) {
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "可同时新建多个互不影响的 Counter.\n右滑 Counter 可将其置顶, 左滑删除.",
+                text = "可同时新建多个互不影响的 Counter.\n右滑可将其置顶, 左滑删除.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
